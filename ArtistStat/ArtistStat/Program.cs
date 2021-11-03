@@ -23,13 +23,10 @@ namespace ArtistStat
             await ProcessRepositories();
         }
 
- 
+        //function to download lyrics
         private static async Task<string> GetLyrics(string artist, string song)
         {
-            
-            //string requrestURL = "https://api.lyrics.ovh/v1/" + artist + "/" + song;
-            //Console.WriteLine(requrestURL);
-            
+
             string requrestURL = string.Format(ConfigurationManager.AppSettings.Get("URLGetLyrics"), artist , song);
             var responseLyrics = await GetResponse<Lyrics.Rootobject>(requrestURL);
             if (responseLyrics is not null)
@@ -38,7 +35,7 @@ namespace ArtistStat
                 return string.Empty;
 
         }
-
+        //function to compute word count
         private static int GetWordCount(string lyrics)
         {
             if (lyrics != string.Empty)
@@ -97,7 +94,7 @@ namespace ArtistStat
                     }
 
 
-                    //Console.WriteLine("duplicated album");
+                    
                 }
             }
 
@@ -123,7 +120,7 @@ namespace ArtistStat
 
 
 
-
+            //section to calculate stats.
             var wordCounts = from a in allSongList
                              where a.wordCount > 0
                              select a.wordCount;
@@ -166,8 +163,6 @@ namespace ArtistStat
 
                 );
 
-            //foreach (var item in avgByYear)
-                //Console.WriteLine("Average Value in" + item.Year + ":" + item.average);
 
             var tableAvgYear = new ConsoleTable("Year", "Average Words by Year");
 
@@ -208,16 +203,12 @@ namespace ArtistStat
 
         }
 
+        //get artist details from musicbrianz.org
         private static async Task<Artists.Artist> GetArtistAsync(string artistname)
         {
 
 
-            //string requrestURL = $"https://musicbrainz.org/ws/2/artist?query=:{artistname}&fmt=json&score=100&limit=1";
-
             string requrestURL = string.Format(ConfigurationManager.AppSettings.Get("URLSearchArtist"),artistname);
-            //Console.WriteLine(requrestURL);
-            //var streamTask = client.GetStreamAsync(requrestURL);
-            //var responseArtist = await JsonSerializer.DeserializeAsync<Artists.Rootobject>(await streamTask);
             var responseArtist = await GetResponse<Artists.Rootobject>(requrestURL);
 
             if (responseArtist.count > 0)
@@ -225,19 +216,16 @@ namespace ArtistStat
             else
                 return default;
         }
-
+        //get album details from musicbrianz.org
         private static async Task<IEnumerable<Releases.Release>> GetAllReleaseByArtist(string arid, int offset)
         {
-            //string requrestURL = $"https://musicbrainz.org/ws/2/release?query=arid:{arid}%20AND%20country:GB%20AND%20primarytype:Album&fmt=json&limit=1&offset=0";
             string requrestURL = string.Format(ConfigurationManager.AppSettings.Get("URLGetAlbumCount"), arid);
             var responseRecording = await GetResponse<Releases.Rootobject>(requrestURL);
             Releases.Release[] result = new Releases.Release[responseRecording.count];
 
             while (offset < responseRecording.count)
             {
-                //requrestURL = $"https://musicbrainz.org/ws/2/release?query=arid:{arid}%20AND%20country:GB%20AND%20primarytype:Album&fmt=json&limit=100&offset={offset}";
                 requrestURL = string.Format(ConfigurationManager.AppSettings.Get("URLGetAlbumList"), arid , offset);
-                //streamTask = client.GetStreamAsync(requrestURL);
                 responseRecording = await GetResponse<Releases.Rootobject>(requrestURL);
                 responseRecording.releases.CopyTo(result, offset);
                 offset += 100;
@@ -246,11 +234,10 @@ namespace ArtistStat
             return result;
         }
 
-
+        //get all tracks by album id from musicbrianz.org
         private static async Task<IEnumerable<Recordings.Recording>> GetAllTrackByRelease(string reid, string arid)
         {
-            string requrestURL = $"https://musicbrainz.org/ws/2/recording?query=reid:{reid}%20AND%20arid:{arid}&fmt=json";
-            //string requrestURL = string.Format(ConfigurationManager.AppSettings.Get("URLGetAllTrack"), reid, arid);
+            string requrestURL = string.Format(ConfigurationManager.AppSettings.Get("URLGetAllTrack"), reid, arid); 
             var responseRecording = await GetResponse<Recordings.Rootobject>(requrestURL);
             return responseRecording.recordings;
 
@@ -261,14 +248,13 @@ namespace ArtistStat
 
         public static async Task<T> GetResponse<T>(string path)
         {
-            //var streamTask = client.GetStreamAsync(requrestURL);
-            //int MAX_RETRIES = 3;
             try
             {
                 var retryPolicy = Policy.Handle<HttpRequestException>(
                     ex => ex.StatusCode == System.Net.HttpStatusCode.BadRequest || ex.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             .WaitAndRetryAsync(new[]
               {
+                //using polly to retry 3 times
                 TimeSpan.FromSeconds(5),
                 TimeSpan.FromSeconds(10),
                 TimeSpan.FromSeconds(15)
@@ -282,9 +268,8 @@ namespace ArtistStat
                     HttpClient client = new HttpClient();
                     client.DefaultRequestHeaders.Accept.Clear();
                     client.DefaultRequestHeaders.Accept.Add(
-                        new MediaTypeWithQualityHeaderValue("application/vnd.github.v3+json"));
-                    client.DefaultRequestHeaders.Add("User-Agent", "ArtistStat/0.1.1 ( kaiwing1@outlook.com )");
-                    //Console.WriteLine(path);
+                        new MediaTypeWithQualityHeaderValue(ConfigurationManager.AppSettings.Get("MediaType")));
+                    client.DefaultRequestHeaders.Add("User-Agent", ConfigurationManager.AppSettings.Get("UserAgent"));
                     var streamTask = client.GetStreamAsync(path);
                     response = (T)await JsonSerializer.DeserializeAsync(await streamTask, typeof(T));
                     client.Dispose();
@@ -296,10 +281,7 @@ namespace ArtistStat
             }
              catch (HttpRequestException e)
             {
-                //Console.Write(string.Format("\r{0}", "".PadLeft(Console.CursorLeft, ' ')));
-                //Console.WriteLine(e.StatusCode + "-" + path);
                 return default(T);
-
             }
             
 
