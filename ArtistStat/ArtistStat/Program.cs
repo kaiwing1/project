@@ -299,6 +299,7 @@ namespace ArtistStat
                 //Console.Write(string.Format("\r{0}", "".PadLeft(Console.CursorLeft, ' ')));
                 //Console.WriteLine(e.StatusCode + "-" + path);
                 return default(T);
+
             }
             
 
