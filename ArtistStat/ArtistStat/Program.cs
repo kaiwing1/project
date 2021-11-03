@@ -121,18 +121,36 @@ namespace ArtistStat
 
             }
 
+
+
+
+            var wordCounts = from a in allSongList
+                             where a.wordCount > 0
+                             select a.wordCount;
+
+
+            double meanOfValues = wordCounts.Average();
+            double sumOfSquares = 0.0;
+            foreach (int a in wordCounts)
+            {
+                sumOfSquares += Math.Pow((a - meanOfValues), 2.0);
+            }
+
+            int countOfValues = wordCounts.Count();
+            double varianceOfValues = sumOfSquares / (countOfValues - 1);
+            double standardDeviationOfValues =  Math.Sqrt(varianceOfValues);
+
             
-
-
-            var averageCount = (from a in allSongList
-                                where a.wordCount > 0
-                                select a.wordCount).Average();
 
             Console.Write(string.Format("\r{0}", "".PadLeft(Console.CursorLeft, ' ')));
             Console.WriteLine("");
 
-            var tableAvg = new ConsoleTable("Artist", "Average Word Count");
-            tableAvg.AddRow(targetArtist.name, averageCount);
+            var tableAvg = new ConsoleTable("Data", "Value");
+            tableAvg.AddRow("Average Words per song", meanOfValues);
+            tableAvg.AddRow("Minimum", wordCounts.Min());
+            tableAvg.AddRow("Maximum", wordCounts.Max());
+            tableAvg.AddRow("Variance", varianceOfValues);
+            tableAvg.AddRow("Standard deviation", standardDeviationOfValues);
             tableAvg.Write(Format.Alternative);
             Console.WriteLine();
 
@@ -151,7 +169,7 @@ namespace ArtistStat
             //foreach (var item in avgByYear)
                 //Console.WriteLine("Average Value in" + item.Year + ":" + item.average);
 
-            var tableAvgYear = new ConsoleTable("Year", "Average Word Count");
+            var tableAvgYear = new ConsoleTable("Year", "Average Words by Year");
 
             foreach (var item in avgByYear)
             {
@@ -178,7 +196,7 @@ namespace ArtistStat
             );
 
 
-            var tableAvgAlbum = new ConsoleTable("Album", "Year", "Average Word Count");
+            var tableAvgAlbum = new ConsoleTable("Album", "Year", "Average Word By Album");
 
             foreach (var item in avgByAlbum)
             {
